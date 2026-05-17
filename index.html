@@ -1,79 +1,300 @@
 <!DOCTYPE html>
 <html lang="vi">
+<!DOCTYPE html>
+<html lang="vi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Giới Thiệu Bản Thân</title>
+  <title>Giới thiệu bản thân</title>
 
   <style>
-    body {
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      margin: 0;
-      padding: 0;
+      scroll-behavior: smooth;
     }
 
-    .container {
-      width: 80%;
-      max-width: 700px;
-      margin: 50px auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      text-align: center;
+    body{
+      color:#fff;
+      font-size:19px;
+      font-weight:500;
+      text-shadow:0 2px 8px rgba(0,0,0,0.6);
+      overflow:hidden; /* đổi để giống PPT */
     }
 
-    img {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      object-fit: cover;
+    section{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:40px;
+      color:white;
+      position:absolute;
+      width:100%;
+      top:0;
+      left:0;
+
+      transition:transform 0.8s ease, opacity 0.8s ease;
     }
 
-    h1 {
-      color: #333;
+    /* ===== BACKGROUND ===== */
+    .page1{
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+        url("https://raw.githubusercontent.com/chunglop0781/chunglop0781.github.io/refs/heads/main/source/Gemini_Generated_Image_cguwnccguwnccguw.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;}
+    .page2{ background:linear-gradient(135deg,#42275a,#734b6d); }
+    .page3{ background:linear-gradient(135deg,#134e5e,#71b280); }
+    .page4{
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+        url("https://github.com/chunglop0781/chunglop0781.github.io/blob/main/source/Gemini_Generated_Image_860geo860geo860g.png?raw=true");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+    }    .pagecuoi{
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+        url("https://raw.githubusercontent.com/chunglop0781/chunglop0781.github.io/refs/heads/main/source/Gemini_Generated_Image_cguwnccguwnccguw.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
     }
 
-    p {
-      color: #555;
-      line-height: 1.6;
+    /* ===== PPT SLIDE EFFECT ===== */
+    section.active{
+      transform:translateY(0);
+      opacity:1;
+      z-index:2;
     }
 
-    .btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
+    section.up{
+      transform:translateY(-100%);
+      opacity:0;
+      z-index:1;
     }
 
-    .btn:hover {
-      background: #0056b3;
+    section.down{
+      transform:translateY(100%);
+      opacity:0;
+      z-index:1;
     }
+
+    /* ===== CONTENT STYLE (GIỮ NGUYÊN CỦA BẠN) ===== */
+    img{
+      width:180px;
+      height:180px;
+      border-radius:50%;
+      object-fit:cover;
+      border:5px solid white;
+      margin-bottom:20px;
+      animation:fadeUp 1s ease;
+    }
+
+    h1{
+      font-size:50px;
+      margin-bottom:20px;
+      animation:fadeUp 1s ease;
+    }
+
+    p{
+      max-width:700px;
+      line-height:1.8;
+      font-size:20px;
+      animation:fadeUp 1.3s ease;
+    }
+
+    a{
+      color:white;
+      text-decoration:none;
+    }
+
+    /* animations giữ nguyên */
+    @keyframes fadeUp{
+      from{opacity:0; transform:translateY(80px);}
+      to{opacity:1; transform:translateY(0);}
+    }
+
+    @keyframes float{
+      0%{transform:translateY(0);}
+      50%{transform:translateY(10px);}
+      100%{transform:translateY(0);}
+    }
+
+    /* social (giữ nguyên bạn đã có) */
+    .social-list{
+      display:flex;
+      gap:50px;
+      margin-top:30px;
+    }
+
+    .social-item{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:white;
+      text-decoration:none;
+      opacity:0;
+      transform:translateX(-100px);
+      animation:slideRight 1s forwards;
+    }
+
+    .social-item:nth-child(1){animation-delay:0.3s;}
+    .social-item:nth-child(2){animation-delay:0.8s;}
+    .social-item:nth-child(3){animation-delay:1.3s;}
+
+    .social-item img{
+      width:80px;
+      height:80px;
+      border-radius:20px;
+      margin-bottom:10px;
+    }
+
+    @keyframes slideRight{
+      from{opacity:0; transform:translateX(-120px);}
+      to{opacity:1; transform:translateX(0);}
+    }
+
+    /* next button */
+    .next{
+      position:absolute;
+      bottom:30px;
+      font-size:40px;
+      color:white;
+      text-decoration:none;
+      animation:float 2s infinite;
+    }
+.page1 .intro-box{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:50px;
+}
+
+.page1 .intro-text{
+  text-align:left;
+}
+
+.page1 img{
+  width:280px;
+  height:280px;
+  margin-bottom:0; /* bỏ xuống dưới */
+}
+
   </style>
 </head>
 
 <body>
 
-  <div class="container">
-    <img src="https://via.placeholder.com/150" alt="Ảnh đại diện">
-
-    <h1>Xin chào, tôi là Nguyễn Văn A</h1>
-
-    <p>
-      Tôi là một người yêu thích công nghệ và lập trình web.
-      Hiện tại tôi đang học HTML, CSS và JavaScript để trở thành Front-end Developer.
-    </p>
-
-    <p>
-      Sở thích của tôi là nghe nhạc, chơi game và tìm hiểu công nghệ mới.
-    </p>
-
-    <a href="#" class="btn">Liên hệ với tôi</a>
+  <!-- PAGE 1 -->
+<section class="page1 active">
+  <div class="intro-box">
+    <img src="https://raw.githubusercontent.com/chunglop0781/chunglop0781.github.io/refs/heads/main/source/chan-dung.png">
+    <div class="intro-text">
+      <h1>Mai Ngọc Hùng Anh</h1>
+      <p>Năm sinh: 15/09/2006</p>
+      <p>Quê quán: Thanh Hoá</p>
+      <p>Sinh viên: Khoa học máy tính K66 - Trường Đại học Giao thông vận tải</p>
+    </div>
   </div>
+  <a class="next" onclick="nextPage()">⌄</a>
+</section>
+
+  <!-- PAGE 2 -->
+  <section class="page2 down">
+    <h1>Kỹ năng</h1>
+    <p>HTML / CSS / JS</p>
+    <a class="next" onclick="nextPage()">⌄</a>
+  </section>
+
+  <!-- PAGE 3 -->
+  <section class="page3 down">
+    <h1>Kỹ năng</h1>
+    <p>Frontend Developer</p>
+    <a class="next" onclick="nextPage()">⌄</a>
+  </section>
+
+<!-- PAGE 4 -->
+<section class="page4 down">
+  <h1>Mạng xã hội</h1>
+
+  <div class="social-list">
+    <a class="social-item" href="#">
+      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png">
+      Facebook
+    </a>
+
+    <a class="social-item" href="#">
+      <img src="https://cdn-icons-png.flaticon.com/512/3536/3536505.png">
+      LinkedIn
+    </a>
+
+    <a class="social-item" href="#">
+      <img src="https://cdn-icons-png.flaticon.com/512/733/733553.png">
+      GitHub
+    </a>
+
+</section>
+
+<!-- PAGE CUỐI -->
+<section class="pagecuoi down">
+  <h1>Đừng bao giờ từ bỏ code</h1>
+  <p>
+    Hành trình theo đuổi Công nghệ Thông tin không hề dễ dàng. Sẽ có lúc bạn gặp lỗi,
+    có lúc phải ngồi hàng giờ chỉ để sửa một dòng code, và cũng có lúc bạn muốn bỏ cuộc.
+    Nhưng chính những lần thất bại đó lại giúp bạn hiểu sâu hơn và trưởng thành hơn.
+    Chỉ cần bạn kiên trì học hỏi mỗi ngày, từng chút một, bạn sẽ tiến bộ và tạo ra
+    những sản phẩm của riêng mình. Trong CNTT, không ai giỏi ngay từ đầu,
+    quan trọng là bạn không ngừng cố gắng.
+  </p>
+</section>
+
+<script>
+let pages = document.querySelectorAll("section");
+let current = 0;
+
+function update(){
+  pages.forEach((p,i)=>{
+    p.classList.remove("active","up","down");
+
+    if(i < current){
+      p.classList.add("up");
+    } else if(i > current){
+      p.classList.add("down");
+    } else {
+      p.classList.add("active");
+    }
+  });
+}
+
+function nextPage(){
+  if(current < pages.length-1){
+    current++;
+    update();
+  }
+}
+
+function prevPage(){
+  if(current > 0){
+    current--;
+    update();
+  }
+}
+
+update();
+
+/* giống PPT */
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowDown") nextPage();
+  if(e.key==="ArrowUp") prevPage();
+});
+</script>
 
 </body>
 </html>
