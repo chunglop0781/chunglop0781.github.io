@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R Code Analyzer & Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2336;
+    --panel: #232840;
+    --border: #2e3455;
+    --accent: #7c6ff7;
+    --accent2: #4ecdc4;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e8eaf0;
+    --text2: #8b90a7;
+    --text3: #5a5f7a;
+    --green: #06d6a0;
+    --red: #ef476f;
+    --orange: #ffd166;
+    --blue: #118ab2;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Sora', sans-serif;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; color: #fff; letter-spacing: -1px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  header span { font-size: 12px; color: var(--text2); background: var(--bg3); padding: 3px 10px; border-radius: 20px; margin-left: 8px; }
+
+  /* Layout */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 67px);
+  }
+  .pane {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pane:last-child { border-right: none; }
+  .pane-header {
+    padding: 10px 18px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text2);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: var(--green); }
+  .dot-purple { background: var(--accent); }
+  .dot-orange { background: var(--orange); }
+  .dot-red { background: var(--red); }
+
+  /* Editor */
+  #editor-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  #line-numbers {
+    padding: 16px 0;
+    background: var(--bg2);
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    text-align: right;
+    min-width: 44px;
+    padding-right: 12px;
+    padding-left: 8px;
+    border-right: 1px solid var(--border);
+    user-select: none;
+    overflow: hidden;
+  }
+  #code-editor {
+    flex: 1;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg2);
+    border: none;
+    outline: none;
+    resize: none;
+    tab-size: 2;
+    overflow: auto;
+    white-space: pre;
+  }
+  #code-editor::selection { background: rgba(124,111,247,0.35); }
+
+  /* Bottom bar with buttons */
+  .editor-bar {
+    padding: 10px 18px;
+    background: var(--bg3);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .btn {
+    padding: 7px 18px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #9489f8; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: rgba(239,71,111,0.15); color: var(--red); border: 1px solid rgba(239,71,111,0.3); }
+  .btn-danger:hover { background: rgba(239,71,111,0.25); }
+  .examples-select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  /* Output panel */
+  #output-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .out-section { margin-bottom: 20px; }
+  .out-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-family: var(--sans);
+  }
+  .out-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12.5px;
+  }
+  .out-ok { border-left: 3px solid var(--green); }
+  .out-err { border-left: 3px solid var(--red); background: rgba(239,71,111,0.08); }
+  .out-warn { border-left: 3px solid var(--orange); background: rgba(255,209,102,0.08); }
+  .out-info { border-left: 3px solid var(--accent); }
+
+  /* Analysis panel */
+  #analysis-wrap {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 0;
+  }
+  .line-card {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .line-card:hover { background: var(--bg3); }
+  .line-card.error-line { background: rgba(239,71,111,0.05); border-left: 3px solid var(--red); }
+  .line-card.warn-line { background: rgba(255,209,102,0.05); border-left: 3px solid var(--orange); }
+  .line-card.ok-line { }
+  .line-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .line-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 28px;
+  }
+  .line-code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--sans);
+    flex-shrink: 0;
+  }
+  .badge-fn { background: rgba(124,111,247,0.2); color: var(--accent); }
+  .badge-assign { background: rgba(78,205,196,0.2); color: var(--accent2); }
+  .badge-plot { background: rgba(255,209,102,0.2); color: var(--orange); }
+  .badge-ctrl { background: rgba(255,107,107,0.2); color: var(--accent3); }
+  .badge-lib { background: rgba(6,214,160,0.2); color: var(--green); }
+  .badge-err { background: rgba(239,71,111,0.25); color: var(--red); }
+  .badge-ok { background: rgba(6,214,160,0.18); color: var(--green); }
+  .line-desc {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+    padding-left: 38px;
+  }
+  .line-fix {
+    margin-top: 6px;
+    padding-left: 38px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--accent3);
+    background: rgba(255,107,107,0.07);
+    border-radius: 6px;
+    padding: 6px 10px 6px 38px;
+  }
+  .fix-label { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+
+  /* Charts panel (bottom row spanning full width) */
+  #charts-pane {
+    grid-column: 1 / -1;
+    border-right: none;
+    border-bottom: none;
+    min-height: 280px;
+    max-height: 320px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .charts-inner {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    overflow: hidden;
+    padding: 16px;
+    background: var(--bg);
+    gap: 16px;
+  }
+  .chart-box {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chart-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--sans);
+  }
+  canvas { flex: 1; min-height: 0; }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    padding: 8px 18px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stat-chip {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--sans);
+    color: var(--text2);
+  }
+  .stat-chip b { color: var(--text); font-weight: 600; }
+
+  /* Placeholder */
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text3);
+    font-family: var(--sans);
+    gap: 12px;
+  }
+  .placeholder-icon { font-size: 40px; opacity: 0.3; }
+  .placeholder p { font-size: 13px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; padding-left: 38px; }
+  .tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">R</div>
+  <h1>R Code Analyzer</h1>
+  <span>AI-Powered</span>
+</header>
+
+<main>
+  <!-- Editor pane -->
+  <div class="pane" style="grid-row:1/2; grid-column:1/2;">
+    <div class="pane-header">
+      <div class="dot dot-purple"></div>
+      Editor R Code
+    </div>
+    <div id="editor-wrap">
+      <div id="line-numbers">1</div>
+      <textarea id="code-editor" spellcheck="false" placeholder="# Nhập code R của bạn vào đây..."></textarea>
+    </div>
+    <div class="editor-bar">
+      <button class="btn btn-primary" id="run-btn" onclick="runAnalysis()">
+        ▶ Phân tích
+      </button>
+      <button class="btn btn-secondary" onclick="clearAll()">✕ Xóa</button>
+      <button class="btn btn-danger" id="fix-btn" onclick="fixErrors()" style="display:none">⚡ Sửa lỗi</button>
+      <select class="examples-select" onchange="loadExample(this.value)">
+        <option value="">📂 Ví dụ mẫu...</option>
+        <option value="basic">Cơ bản (biến, vector)</option>
+        <option value="errors">Code có lỗi</option>
+        <option value="plot">Vẽ đồ thị</option>
+        <option value="stats">Thống kê</option>
+        <option value="loop">Vòng lặp & hàm</option>
+        <option value="dataframe">Data Frame</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Output pane -->
+  <div class="pane" style="grid-row:1/2; grid-column:2/3;">
+    <div class="pane-header">
+      <div class="dot dot-green"></div>
+      Kết quả mô phỏng
+    </div>
+    <div id="output-wrap">
+      <div class="placeholder">
+        <div class="placeholder-icon">⚡</div>
+        <p>Nhập code R và nhấn Phân tích</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analysis pane -->
+  <div class="pane" style="grid-row:2/3; grid-column:1/2; max-height: 320px;">
+    <div class="pane-header">
+      <div class="dot dot-orange"></div>
+      Phân tích từng dòng
+    </div>
+    <div id="stats-row" class="stats-row" style="display:none"></div>
+    <div id="analysis-wrap">
+      <div class="placeholder">
+        <div class="placeholder-icon">🔍</div>
+        <p>Phân tích từng dòng lệnh sẽ hiện ở đây</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts pane -->
+  <div class="pane" id="charts-pane" style="grid-row:2/3; grid-column:2/3; max-height:320px;">
+    <div class="pane-header">
+      <div class="dot dot-red"></div>
+      Trực quan hóa / Đồ thị
+    </div>
+    <div class="charts-inner" id="charts-inner">
+      <div class="placeholder" style="width:100%">
+        <div class="placeholder-icon">📊</div>
+        <p>Biểu đồ sẽ hiện ở đây khi code có lệnh vẽ đồ thị</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const EXAMPLES = {
+  basic: `# Khai báo biến
+x <- 10
+y <- 20.5
+name <- "Hello R"
+
+# Vector
+v <- c(1, 2, 3, 4, 5)
+w <- 1:10
+
+# Tính toán cơ bản
+sum_v <- sum(v)
+mean_v <- mean(v)
+cat("Tổng:", sum_v, "\\nTrung bình:", mean_v)`,
+
+  errors: `# Code có lỗi cố ý để test
+library(ggplot2)
+
+x <- c(1, 2, 3, 4, 5)
+y <- c(2, 4, 6, 8)  # lỗi: độ dài không khớp
+
+# Biến chưa khai báo
+result <- x + z
+
+# Hàm không tồn tại
+output <- myFunction(x)
+
+# Thiếu dấu ngoặc
+if (x > 2 {
+  print("lớn hơn 2")
+}`,
+
+  plot: `# Vẽ đồ thị
+x <- 1:10
+y <- x^2
+
+# Scatter plot
+plot(x, y, main="Đồ thị y = x²",
+     xlab="x", ylab="y",
+     col="steelblue", pch=16)
+
+# Histogram
+data <- rnorm(1000, mean=0, sd=1)
+hist(data, breaks=30,
+     main="Phân phối chuẩn",
+     col="salmon", border="white")
+
+# Barplot
+categories <- c("A","B","C","D")
+values <- c(23, 45, 12, 67)
+barplot(values, names.arg=categories,
+        col=rainbow(4))`,
+
+  stats: `# Thống kê mô tả
+data <- c(23, 45, 12, 67, 34, 89, 56, 78, 90, 11)
+
+cat("Tổng:", sum(data), "\\n")
+cat("Trung bình:", mean(data), "\\n")
+cat("Trung vị:", median(data), "\\n")
+cat("Độ lệch chuẩn:", sd(data), "\\n")
+cat("Phương sai:", var(data), "\\n")
+cat("Min:", min(data), "Max:", max(data), "\\n")
+
+# Phân vị
+quantile(data, probs=c(0.25, 0.5, 0.75))
+
+# Kiểm định t-test
+group1 <- rnorm(30, mean=10, sd=2)
+group2 <- rnorm(30, mean=12, sd=2)
+t.test(group1, group2)`,
+
+  loop: `# Hàm và vòng lặp
+# Hàm tính giai thừa
+factorial_r <- function(n) {
+  if (n == 0) return(1)
+  return(n * factorial_r(n - 1))
+}
+
+# Kiểm tra
+for (i in 0:5) {
+  cat(i, "! =", factorial_r(i), "\\n")
+}
+
+# Vòng lặp while
+count <- 1
+while (count <= 5) {
+  cat("Lần", count, "\\n")
+  count <- count + 1
+}
+
+# Apply
+squares <- sapply(1:10, function(x) x^2)
+print(squares)`,
+
+  dataframe: `# Data Frame
+df <- data.frame(
+  name = c("An", "Bình", "Châu", "Dung"),
+  age = c(22, 25, 23, 28),
+  score = c(85, 92, 78, 95),
+  gender = c("Nam", "Nam", "Nữ", "Nữ")
+)
+
+# Xem dữ liệu
+print(df)
+str(df)
+summary(df)
+
+# Lọc dữ liệu
+high_score <- df[df$score > 80, ]
+cat("Sinh viên điểm cao:\\n")
+print(high_score)
+
+# Thêm cột
+df$grade <- ifelse(df$score >= 90, "A",
+             ifelse(df$score >= 80, "B", "C"))
+print(df)`
+};
+
+let chartInstances = [];
+let hasErrors = false;
+let lastCode = '';
+let lastAnalysis = null;
+
+const editor = document.getElementById('code-editor');
+const lineNumbers = document.getElementById('line-numbers');
+
+function updateLineNumbers() {
+  const lines = editor.value.split('\n').length;
+  lineNumbers.innerHTML = Array.from({length: lines}, (_,i) => i+1).join('\n');
+  lineNumbers.scrollTop = editor.scrollTop;
+}
+
+editor.addEventListener('input', updateLineNumbers);
+editor.addEventListener('scroll', () => {
+  lineNumbers.scrollTop = editor.scrollTop;
+});
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart, end = editor.selectionEnd;
+    editor.value = editor.value.substring(0,s) + '  ' + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    updateLineNumbers();
+  }
+});
+updateLineNumbers();
+
+function loadExample(val) {
+  if (!val) return;
+  editor.value = EXAMPLES[val] || '';
+  updateLineNumbers();
+}
+
+function clearAll() {
+  editor.value = '';
+  updateLineNumbers();
+  document.getElementById('output-wrap').innerHTML = '<div class="placeholder"><div class="placeholder-icon">⚡</div><p>Nhập code R và nhấn Phân tích</p></div>';
+  document.getElementById('analysis-wrap').innerHTML = '<div class="placeholder"><div class="placeholder-icon">🔍</div><p>Phân tích từng dòng lệnh sẽ hiện ở đây</p></div>';
+  document.getElementById('charts-inner').innerHTML = '<div class="placeholder" style="width:100%"><div class="placeholder-icon">📊</div><p>Biểu đồ sẽ hiện ở đây khi code có lệnh vẽ đồ thị</p></div>';
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('fix-btn').style.display = 'none';
+  chartInstances.forEach(c => c.destroy());
+  chartInstances = [];
+  hasErrors = false;
+}
+
+async function runAnalysis() {
+  const code = editor.value.trim();
+  if (!code) { alert('Vui lòng nhập code R!'); return; }
+  lastCode = code;
+
+  const btn = document.getElementById('run-btn');
+  btn.innerHTML = '<span class="spinner"></span> Đang phân tích...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Bạn là chuyên gia phân tích R code. Phân tích code R và trả về JSON THUẦN (không có markdown, không có backtick).
+
+Trả về JSON theo định dạng:
+{
+  "hasErrors": boolean,
+  "summary": "tóm tắt ngắn về code này làm gì",
+  "output": "mô phỏng kết quả console output nếu chạy code này (giả lập, không cần chính xác 100%)",
+  "lines": [
+    {
+      "lineNum": 1,
+      "code": "code dòng đó",
+      "type": "assign|fn_def|plot|library|control|comment|print|stat|dataframe|other",
+      "status": "ok|error|warning",
+      "description": "giải thích chi tiết dòng này làm gì bằng tiếng Việt",
+      "tokens": ["token1", "token2"],
+      "fix": "nếu có lỗi: code đã sửa, nếu không có lỗi: null"
+    }
+  ],
+  "hasPlot": boolean,
+  "plotType": "scatter|histogram|bar|line|box|null",
+  "plotData": { nếu hasPlot thì cung cấp dữ liệu mẫu để vẽ, else null },
+  "stats": {
+    "totalLines": number,
+    "errorCount": number,
+    "warningCount": number,
+    "okCount": number
+  }
+}
+
+QUAN TRỌNG: Chỉ trả về JSON, không có text thêm.`,
+        messages: [{ role: 'user', content: `Phân tích code R này:\n\n${code}` }]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    
+    let result;
+    try {
+      const clean = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+      result = JSON.parse(clean);
+    } catch(e) {
+      showFallback(code);
+      return;
+    }
+
+    lastAnalysis = result;
+    hasErrors = result.hasErrors;
+    renderOutput(result);
+    renderAnalysis(result);
+    renderCharts(result);
+    renderStats(result.stats);
+
+    if (hasErrors) document.getElementById('fix-btn').style.display = '';
+    else document.getElementById('fix-btn').style.display = 'none';
+
+  } catch(e) {
+    showFallback(code);
+  } finally {
+    btn.innerHTML = '▶ Phân tích';
+    btn.disabled = false;
+  }
+}
+
+function showFallback(code) {
+  document.getElementById('output-wrap').innerHTML = `<div class="out-section"><div class="out-label">Lỗi kết nối</div><div class="out-block out-err">Không thể kết nối API. Kiểm tra kết nối mạng.\n\nCode của bạn:\n${code}</div></div>`;
+}
+
+function renderOutput(result) {
+  const wrap = document.getElementById('output-wrap');
+  let html = '';
+
+  html += `<div class="out-section">
+    <div class="out-label">📋 Tổng quan</div>
+    <div class="out-block out-info">${escHtml(result.summary)}</div>
+  </div>`;
+
+  if (result.output) {
+    html += `<div class="out-section">
+      <div class="out-label">💻 Console Output (mô phỏng)</div>
+      <div class="out-block ${result.hasErrors ? 'out-warn' : 'out-ok'}">${escHtml(result.output)}</div>
+    </div>`;
+  }
+
+  const errors = (result.lines || []).filter(l => l.status === 'error');
+  const warns = (result.lines || []).filter(l => l.status === 'warning');
+
+  if (errors.length > 0) {
+    html += `<div class="out-section"><div class="out-label">🚨 Lỗi phát hiện (${errors.length})</div>`;
+    errors.forEach(l => {
+      html += `<div class="out-block out-err" style="margin-bottom:8px"><b>Dòng ${l.lineNum}:</b> ${escHtml(l.code)}<br><span style="color:var(--text2)">${escHtml(l.description)}</span></div>`;
+    });
+    html += '</div>';
+  }
+
+  if (warns.length > 0) {
+    html += `<div class="out-section"><div class="out-label">⚠️ Cảnh báo (${warns.length})</div>`;
+    warns.forEach(l => {
+      html += `<div class="out-block out-warn" style="margin-bottom:8px"><b>Dòng ${l.lineNum}:</b> ${escHtml(l.code)}<br><span style="color:var(--text2)">${escHtml(l.description)}</span></div>`;
+    });
+    html += '</div>';
+  }
+
+  if (!errors.length && !warns.length) {
+    html += `<div class="out-block out-ok">✅ Không phát hiện lỗi cú pháp.</div>`;
+  }
+
+  wrap.innerHTML = html;
+}
+
+function renderAnalysis(result) {
+  const wrap = document.getElementById('analysis-wrap');
+  if (!result.lines || !result.lines.length) {
+    wrap.innerHTML = '<div class="placeholder"><p>Không có dòng để phân tích</p></div>';
+    return;
+  }
+
+  const typeLabel = {
+    assign: ['assign', '← Gán biến'],
+    fn_def: ['fn', '⨍ Hàm'],
+    plot: ['plot', '📊 Đồ thị'],
+    library: ['lib', '📦 Thư viện'],
+    control: ['ctrl', '🔀 Điều khiển'],
+    comment: ['', ''],
+    print: ['fn', '🖨 In'],
+    stat: ['fn', '📈 Thống kê'],
+    dataframe: ['assign', '🗂 Dataframe'],
+    other: ['', ''],
+  };
+
+  let html = '';
+  result.lines.forEach(l => {
+    if (!l.code || l.code.trim() === '') return;
+    const isComment = l.code.trim().startsWith('#');
+    if (isComment) {
+      html += `<div class="line-card" style="opacity:0.55">
+        <div class="line-top">
+          <span class="line-num">${l.lineNum}</span>
+          <span class="line-code" style="color:var(--text3)">${escHtml(l.code)}</span>
+        </div>
+      </div>`;
+      return;
+    }
+
+    const cls = l.status === 'error' ? 'error-line' : l.status === 'warning' ? 'warn-line' : 'ok-line';
+    const [bClass, bLabel] = typeLabel[l.type] || ['', ''];
+    const statusBadge = l.status === 'error' ? '<span class="badge badge-err">ERROR</span>' :
+                        l.status === 'warning' ? '<span class="badge" style="background:rgba(255,209,102,0.2);color:var(--orange)">WARN</span>' :
+                        '<span class="badge badge-ok">OK</span>';
+
+    let tagsHtml = '';
+    if (l.tokens && l.tokens.length > 0) {
+      tagsHtml = `<div class="tag-row">${l.tokens.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>`;
+    }
+
+    let fixHtml = '';
+    if (l.fix) {
+      fixHtml = `<div class="line-fix"><div class="fix-label">💡 Gợi ý sửa</div>${escHtml(l.fix)}</div>`;
+    }
+
+    const badgeHtml = bLabel ? `<span class="badge badge-${bClass}">${bLabel}</span>` : '';
+
+    html += `<div class="line-card ${cls}">
+      <div class="line-top">
+        <span class="line-num">${l.lineNum}</span>
+        <span class="line-code">${escHtml(l.code)}</span>
+        ${badgeHtml}
+        ${statusBadge}
+      </div>
+      <div class="line-desc">${escHtml(l.description || '')}</div>
+      ${tagsHtml}
+      ${fixHtml}
+    </div>`;
+  });
+
+  wrap.innerHTML = html || '<div class="placeholder"><p>Không có nội dung</p></div>';
+}
+
+function renderStats(stats) {
+  if (!stats) return;
+  const row = document.getElementById('stats-row');
+  row.style.display = 'flex';
+  row.innerHTML = `
+    <div class="stat-chip">📄 Tổng dòng: <b>${stats.totalLines}</b></div>
+    <div class="stat-chip" style="color:var(--red)">🚨 Lỗi: <b style="color:var(--red)">${stats.errorCount}</b></div>
+    <div class="stat-chip" style="color:var(--orange)">⚠️ Cảnh báo: <b style="color:var(--orange)">${stats.warningCount}</b></div>
+    <div class="stat-chip" style="color:var(--green)">✅ OK: <b style="color:var(--green)">${stats.okCount}</b></div>
+  `;
+}
+
+function renderCharts(result) {
+  chartInstances.forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = [];
+  const inner = document.getElementById('charts-inner');
+
+  // Always show summary donut chart
+  const stats = result.stats || { okCount:0, errorCount:0, warningCount:0 };
+  let chartsHtml = `<div class="chart-box"><div class="chart-title">Phân bố trạng thái dòng code</div><canvas id="donut-chart"></canvas></div>`;
+
+  // Line type distribution
+  const lines = result.lines || [];
+  const typeCounts = {};
+  lines.forEach(l => {
+    if (l.code && !l.code.trim().startsWith('#')) {
+      typeCounts[l.type] = (typeCounts[l.type]||0)+1;
+    }
+  });
+  chartsHtml += `<div class="chart-box"><div class="chart-title">Loại lệnh</div><canvas id="type-chart"></canvas></div>`;
+
+  if (result.hasPlot && result.plotType) {
+    chartsHtml += `<div class="chart-box"><div class="chart-title">Đồ thị mô phỏng (${result.plotType})</div><canvas id="plot-chart"></canvas></div>`;
+  }
+
+  inner.innerHTML = chartsHtml;
+
+  // Donut
+  const donutCtx = document.getElementById('donut-chart').getContext('2d');
+  chartInstances.push(new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['OK', 'Lỗi', 'Cảnh báo'],
+      datasets: [{ data: [stats.okCount||0, stats.errorCount||0, stats.warningCount||0],
+        backgroundColor: ['#06d6a0','#ef476f','#ffd166'],
+        borderColor: '#232840', borderWidth: 2 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:'#8b90a7', font:{size:11} } } } }
+  }));
+
+  // Bar type
+  const typeCtx = document.getElementById('type-chart').getContext('2d');
+  const typeNames = { assign:'Gán', fn_def:'Hàm', plot:'Đồ thị', library:'Thư viện', control:'Điều khiển', print:'In', stat:'Thống kê', dataframe:'Dataframe', other:'Khác' };
+  const tLabels = Object.keys(typeCounts).map(k => typeNames[k]||k);
+  const tData = Object.values(typeCounts);
+  chartInstances.push(new Chart(typeCtx, {
+    type: 'bar',
+    data: {
+      labels: tLabels,
+      datasets: [{ label: 'Số dòng', data: tData,
+        backgroundColor: ['#7c6ff7','#4ecdc4','#ffd166','#06d6a0','#ff6b6b','#118ab2','#f78c6c','#c3a6ff','#8b90a7'],
+        borderRadius: 6 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{color:'#8b90a7',font:{size:10}}, grid:{color:'#2e3455'} },
+               y:{ ticks:{color:'#8b90a7',font:{size:10}}, grid:{color:'#2e3455'} } } }
+  }));
+
+  // Plot simulation
+  if (result.hasPlot && result.plotType) {
+    const plotCtx = document.getElementById('plot-chart').getContext('2d');
+    let chartConfig;
+    const pd = result.plotData;
+
+    if (result.plotType === 'scatter' || result.plotType === 'line') {
+      const pts = pd && pd.x ? pd.x.map((xi,i) => ({x:xi, y:(pd.y||[])[i]||xi*xi})) : Array.from({length:10},(_,i)=>({x:i+1,y:(i+1)**2}));
+      chartConfig = { type: result.plotType==='scatter'?'scatter':'line',
+        data:{ datasets:[{ data:pts, backgroundColor:'#7c6ff7', borderColor:'#7c6ff7', pointRadius:5, tension:0.4 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales:{ x:{ticks:{color:'#8b90a7'},grid:{color:'#2e3455'}}, y:{ticks:{color:'#8b90a7'},grid:{color:'#2e3455'}} } } };
+    } else if (result.plotType === 'histogram') {
+      const vals = pd && pd.values ? pd.values : Array.from({length:30},()=>Math.round((Math.random()+Math.random()+Math.random()-1.5)*20));
+      const min=Math.min(...vals), max=Math.max(...vals), bins=10;
+      const step=(max-min)/bins;
+      const labels=[], counts=[];
+      for(let i=0;i<bins;i++){
+        const lo=min+i*step, hi=lo+step;
+        labels.push(lo.toFixed(1));
+        counts.push(vals.filter(v=>v>=lo&&v<hi).length);
+      }
+      chartConfig={type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:'#ef476f88',borderColor:'#ef476f',borderWidth:1}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{ticks:{color:'#8b90a7',font:{size:9}},grid:{color:'#2e3455'}},y:{ticks:{color:'#8b90a7'},grid:{color:'#2e3455'}}}}};
+    } else {
+      const bLabels = pd && pd.labels ? pd.labels : ['A','B','C','D'];
+      const bVals = pd && pd.values ? pd.values : [23,45,12,67];
+      chartConfig={type:'bar',data:{labels:bLabels,datasets:[{data:bVals,backgroundColor:['#7c6ff7','#4ecdc4','#ffd166','#06d6a0'],borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{ticks:{color:'#8b90a7'},grid:{color:'#2e3455'}},y:{ticks:{color:'#8b90a7'},grid:{color:'#2e3455'}}}}};
+    }
+    chartInstances.push(new Chart(plotCtx, chartConfig));
+  }
+}
+
+async function fixErrors() {
+  if (!lastCode || !lastAnalysis) return;
+  const btn = document.getElementById('fix-btn');
+  btn.innerHTML = '<span class="spinner"></span> Đang sửa...';
+  btn.disabled = true;
+
+  try {
+    const errors = lastAnalysis.lines.filter(l => l.status === 'error' || l.fix);
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Bạn là chuyên gia R. Sửa code R có lỗi. Trả về JSON THUẦN: {"fixedCode": "code đã sửa hoàn chỉnh", "changes": ["thay đổi 1", "thay đổi 2"]}',
+        messages: [{ role: 'user', content: `Sửa code R này:\n\n${lastCode}\n\nCác lỗi:\n${errors.map(e => `Dòng ${e.lineNum}: ${e.description}`).join('\n')}` }]
+      })
+    });
+    const data = await response.json();
+    const raw = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const result = JSON.parse(clean);
+
+    if (result.fixedCode) {
+      editor.value = result.fixedCode;
+      updateLineNumbers();
+      // Show changes
+      const output = document.getElementById('output-wrap');
+      const changeHtml = result.changes ? result.changes.map(c => `• ${escHtml(c)}`).join('\n') : '';
+      output.innerHTML = `<div class="out-section"><div class="out-label">✅ Code đã được sửa</div><div class="out-block out-ok">${changeHtml}</div></div>`;
+    }
+  } catch(e) {
+    alert('Không thể sửa tự động. Kiểm tra kết nối.');
+  } finally {
+    btn.innerHTML = '⚡ Sửa lỗi';
+    btn.disabled = false;
+  }
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
